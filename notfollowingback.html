@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+        font-family: Arial, sans-serif;
+        background-color: #f2f2f2;
+        margin: 0;
+        padding: 0;
+        }
+
+        .header {
+        background-color: #333;
+        color: #fff;
+        padding: 20px;
+        text-align: center;
+        }
+
+        .instructions {
+        background-color: #f9f9f9;
+        padding: 20px;
+        margin-bottom: 20px;
+        }
+
+        
+        .collapsible {
+        cursor: pointer;
+        font-weight: 800;
+        color: red;
+        padding: 18px;
+        width: 100%;
+        border: none;
+        text-align: left;
+        outline: none;
+        font-size: 16px;
+        transition: 0.4s;
+        }
+
+        .content {
+        padding: 0 18px;
+        max-height: 100%;
+        overflow: hidden;
+        transition: max-height 0.2s ease-out;
+        }
+
+        .collapsed {
+        max-height: 0;
+        margin-top: 0;
+        margin-bottom: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        }
+
+        .container {
+        margin: 20px auto;
+        max-width: 500px;
+        background-color: #fff;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .container h2 {
+        margin: 0;
+        padding: 20px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-top-left-radius: 5px;
+        border-top-right-radius: 5px;
+        }
+
+        .form-group {
+        margin: 20px;
+        }
+
+        .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        }
+
+        .form-group input[type="file"] {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+        }
+
+        .button {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        background-color: #4CAF50;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        }
+
+        .button:hover {
+        background-color: #45a049;
+        }
+
+        .screenshot-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        }
+
+        .screenshot {
+        flex-basis: 24%;
+        }
+
+        .screenshot img {
+        max-width: 100%;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        }
+
+        table {
+            flex: 0 0 49%;
+            padding: 10px;
+            width: 100%;
+            background-color: #eee;
+            border-collapse: collapse;
+            margin-top: 20px;
+            margin-right: 1%;
+            table-layout: fixed; /* Added this line */
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center; /* Updated this line */
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+        background-color: #f2f2f2;
+        }
+        caption {
+            font-weight: bold;
+        }
+        #results{
+            display: flex;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Check Missing Values</h1>
+    </div>
+    <button class="collapsible" onclick="toggleInstructions()">Note: Click here to read the following Instructions</button>
+    <div class="content collapsed">
+        <div class="instructions">
+        <h2>Instructions</h2>
+        <ol>
+            <li>Log in to your Instagram account.</li>
+            <li>Go to your profile page.</li>
+            <li>Click on the <strong>Settings</strong> icon (usually a gear or three dots).</li>
+            <li>Select <strong>Privacy &amp; Security</strong>.</li>
+            <li>Scroll down and click on <strong>Download Data</strong>.</li>
+            <li>Click on <strong>Request Download</strong>.</li>
+            <li>Instagram will prepare your data and send you an email when it's ready for download.</li>
+            <li>Download the ZIP file containing your data.</li>
+            <li>Extract the ZIP file on your computer.</li>
+            <li>Locate the <strong>followers.json</strong> and <strong>following.json</strong> files.</li>
+        </ol>
+        <div class="screenshot-row">
+            <div class="screenshot">
+            <img src="assets/scr1.jpg" alt="Screenshot 1">
+            </div>
+            <div class="screenshot">
+            <img src="assets/scr2.jpg" alt="Screenshot 2">
+            </div>
+            <div class="screenshot">
+            <img src="assets/scr3.jpg" alt="Screenshot 3">
+            </div>
+            <div class="screenshot">
+            <img src="assets/scr4.jpg" alt="Screenshot 4">
+            </div>
+            <div class="screenshot">
+            <img src="assets/scr5.jpg" alt="Screenshot 4">
+            </div>
+            <div class="screenshot">
+            <img src="assets/scr6.jpg" alt="Screenshot 4">
+            </div>
+        </div>
+        </div>
+    </div>
+    <div class="container">
+        <h2>Select JSON Files</h2>
+        <div class="form-group">
+        <label for="followers">Followers JSON:</label>
+        <input type="file" id="followers" accept=".json">
+        </div>
+        <div class="form-group">
+        <label for="following">Following JSON:</label>
+        <input type="file" id="following" accept=".json">
+        </div>
+        <button class="button" onclick="checkMissingValues()">Check</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+
+        function toggleInstructions() {
+            var content = document.querySelector('.content');
+            content.classList.toggle('collapsed');
+        }
+        function renderTable(data, captionText) {
+            var table = document.createElement('table');
+            var caption = document.createElement('caption');
+            var thead = document.createElement('thead');
+            var tbody = document.createElement('tbody');
+            var headerRow = document.createElement('tr');
+            var numberHeader = document.createElement('th');
+            var usernameHeader = document.createElement('th');
+            var hrefHeader = document.createElement('th');
+
+            caption.textContent = captionText;
+            numberHeader.textContent = 'Number';
+            usernameHeader.textContent = 'Username';
+            hrefHeader.textContent = 'Href';
+
+            headerRow.appendChild(numberHeader);
+            headerRow.appendChild(usernameHeader);
+            headerRow.appendChild(hrefHeader);
+            thead.appendChild(headerRow);
+            table.appendChild(caption);
+            table.appendChild(thead);
+            table.appendChild(tbody);
+
+            data.forEach(function (username, idx) {
+                var row = document.createElement('tr');
+                var idxCell = document.createElement('td');
+                var usernameCell = document.createElement('td');
+                var hrefCell = document.createElement('td');
+                var href = 'https://www.instagram.com/' + username;
+                idxCell.textContent = idx + 1;
+                usernameCell.textContent = username;
+                hrefCell.innerHTML = "<a href='" + href + "' target='_blank'>Un-follow</a>";
+
+                row.appendChild(idxCell);
+                row.appendChild(usernameCell);
+                row.appendChild(hrefCell);
+                tbody.appendChild(row);
+            });
+
+            var resultsDiv = document.getElementById('results');
+            //resultsDiv.innerHTML = '';
+            resultsDiv.appendChild(table);
+            }
+
+            function getMissingFollowers(followingData, followersData) {
+            let records = [];
+            for (var i = 0; i < followingData.length; i++) {
+                if (!followersData.includes(followingData[i])) {
+                records.push(followingData[i]);
+                }
+            }
+            return records;
+            }
+
+            async function checkMissingValues() {
+            var followersFile = document.getElementById('followers').files[0];
+            var followingFile = document.getElementById('following').files[0];
+
+            if (followersFile && followingFile) {
+                try {
+                var followersReader = new FileReader();
+                var followingReader = new FileReader();
+
+                var followersPromise = new Promise(function (resolve, reject) {
+                    followersReader.onload = function (e) {
+                    var followersMetaData = JSON.parse(e.target.result);
+                    const followersData = Object.values(followersMetaData).map((f) => {
+                        return f.string_list_data[0].value;
+                    });
+                    resolve(followersData);
+                    };
+
+                    followersReader.onerror = function (error) {
+                    reject(error);
+                    };
+
+                    followersReader.readAsText(followersFile);
+                });
+
+                var followingPromise = new Promise(function (resolve, reject) {
+                    followingReader.onload = function (e) {
+                    var followingMetaData = JSON.parse(e.target.result)?.relationships_following;
+                    const followingData = Object.values(followingMetaData).map((f) => {
+                        return f.string_list_data[0].value;
+                    });
+                    resolve(followingData);
+                    };
+
+                    followingReader.onerror = function (error) {
+                    reject(error);
+                    };
+
+                    followingReader.readAsText(followingFile);
+                });
+
+                var [followersData, followingData] = await Promise.all([followersPromise, followingPromise]);
+
+                var followers_not_following_me_back = getMissingFollowers(followingData, followersData, followers_not_following_me_back);
+                var followers_im_not_following_back = getMissingFollowers(followersData, followingData, followers_im_not_following_back);
+                if(followers_not_following_me_back.length>0)
+                renderTable(followers_not_following_me_back, 'Followers not following me back');
+                if(followers_im_not_following_back.length>0)
+                renderTable(followers_im_not_following_back, 'Followers I am not following back');
+                } catch (error) {
+                console.log('Error occurred:', error);
+                }
+            } else {
+                console.log('Please select both files.');
+            }
+            }
+    </script>
+</body>
+</html>
