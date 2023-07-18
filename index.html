@@ -202,6 +202,10 @@
         <label for="following">Following JSON:</label>
         <input type="file" id="following" accept=".json">
         </div>
+        <div class="form-group">
+        <label for="following">Pending follow request JSON:</label>
+        <input type="file" id="pending" accept=".json">
+        </div>
         <button class="button" onclick="checkMissingValues()">Check</button>
     </div>
 
@@ -213,8 +217,23 @@
             var content = document.querySelector('.content');
             content.classList.toggle('collapsed');
         }
+
+        function convertTimestampToDateTime(timestamp) {
+            const date = new Date(timestamp * 1000);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const hours = date.getHours();
+            const minutes = date.getMinutes();
+            const seconds = date.getSeconds();
+            const formattedDateTime = `${month}/${day}/${year} ${hours}:${minutes}:${seconds}`;
+
+            return formattedDateTime;
+        }
+
         function renderTable(data, captionText) {
             var table = document.createElement('table');
+            var isPendingList = String(captionText).indexOf('Pending follow request') > -1;
             var caption = document.createElement('caption');
             var thead = document.createElement('thead');
             var tbody = document.createElement('tbody');
@@ -222,7 +241,11 @@
             var numberHeader = document.createElement('th');
             var usernameHeader = document.createElement('th');
             var hrefHeader = document.createElement('th');
-
+            if(isPendingList){
+                var DateHeader = document.createElement('th');
+                DateHeader.textContent = 'Since ?';
+            }
+            
             caption.textContent = captionText;
             numberHeader.textContent = 'Number';
             usernameHeader.textContent = 'Username';
@@ -231,6 +254,7 @@
             headerRow.appendChild(numberHeader);
             headerRow.appendChild(usernameHeader);
             headerRow.appendChild(hrefHeader);
+            isPendingList && headerRow.appendChild(DateHeader);
             thead.appendChild(headerRow);
             table.appendChild(caption);
             table.appendChild(thead);
@@ -241,14 +265,22 @@
                 var idxCell = document.createElement('td');
                 var usernameCell = document.createElement('td');
                 var hrefCell = document.createElement('td');
+                var DateCell = isPendingList ? document.createElement('td') : null;
                 var href = 'https://www.instagram.com/' + username;
                 idxCell.textContent = idx + 1;
                 usernameCell.textContent = username;
+                if(isPendingList){
+                    href = 'https://www.instagram.com/' + username.string_list_data[0].value;
+                    usernameCell.textContent = username.string_list_data[0].value;
+                    DateCell.textContent = convertTimestampToDateTime(username.string_list_data[0].timestamp);
+                }
                 hrefCell.innerHTML = "<a href='" + href + "' target='_blank'>Visit profile</a>";
-
                 row.appendChild(idxCell);
                 row.appendChild(usernameCell);
                 row.appendChild(hrefCell);
+                if(DateCell !== null){
+                    row.appendChild(DateCell);
+                }
                 tbody.appendChild(row);
             });
 
@@ -271,12 +303,14 @@
             toggleInstructions();
             var followersFile = document.getElementById('followers').files[0];
             var followingFile = document.getElementById('following').files[0];
+            var pendingFile = document.getElementById('pending').files[0];
 
-            if (followersFile && followingFile) {
+            if (followersFile && followingFile && pendingFile) {
                 try {
                 var followersReader = new FileReader();
                 var followingReader = new FileReader();
-
+                var pendingReader = new FileReader();
+                let pendingData = [];
                 var followersPromise = new Promise(function (resolve, reject) {
                     followersReader.onload = function (e) {
                     var followersMetaData = JSON.parse(e.target.result);
@@ -309,7 +343,21 @@
                     followingReader.readAsText(followingFile);
                 });
 
-                var [followersData, followingData] = await Promise.all([followersPromise, followingPromise]);
+                var pendingPromise = new Promise(function (resolve, reject) {
+                    pendingReader.onload = function (e) {
+                    var pendingMetaData = JSON.parse(e.target.result).relationships_follow_requests_sent;
+                    pendingData = Object.values(pendingMetaData);
+                    resolve(pendingData);
+                    };
+
+                    pendingReader.onerror = function (error) {
+                    reject(error);
+                    };
+
+                    pendingReader.readAsText(pendingFile);
+                });
+
+                var [followersData, followingData, pendingfollowersData] = await Promise.all([followersPromise, followingPromise, pendingPromise]);
 
                 var followers_not_following_me_back = getMissingFollowers(followingData, followersData, followers_not_following_me_back);
                 var followers_im_not_following_back = getMissingFollowers(followersData, followingData, followers_im_not_following_back);
@@ -317,6 +365,8 @@
                 renderTable(followers_not_following_me_back, 'Followers not following me back');
                 if(followers_im_not_following_back.length>0)
                 renderTable(followers_im_not_following_back, 'Followers I am not following back');
+                renderTable(pendingfollowersData, 'Pending follow request');
+
                 } catch (error) {
                 console.log('Error occurred:', error);
                 }
